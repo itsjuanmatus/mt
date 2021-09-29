@@ -27,6 +27,9 @@ app.get('/users', async (req, res, next) => {
   res.json({ body: users })
 })
 
+app.post('/bulkCreate', userService.bulkCreate)
+
+
 app.listen(PORT, () => {
   console.log(`Express server started at port: ${PORT}`)
 })

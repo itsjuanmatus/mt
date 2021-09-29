@@ -1,6 +1,12 @@
 import knex from 'knex'
-import commonDBConnection from './commonDBConnection'
+/* import commonDBConnection from './commonDBConnection'
+ */
 import { getNamespace } from 'continuation-local-storage'
+
+const db = require('./commonDBConnection')
+const commonDBConnection = db.tenants
+
+const Sequelize = require('sequelize')
 
 let connectionMap
 
@@ -13,7 +19,7 @@ export async function connectAllDb () {
   let tenants
 
   try {
-    tenants = await commonDBConnection.select('*').from('tenants')
+    tenants = await commonDBConnection.findAll()
   } catch (e) {
     console.log('error', e)
     return
@@ -22,7 +28,7 @@ export async function connectAllDb () {
   connectionMap = tenants
     .map(tenant => {
       return {
-        [tenant.slug]: knex(createConnectionConfig(tenant))
+        [tenant.slug]: createConnectionConfig(tenant)
       }
     })
     .reduce((prev, next) => {
@@ -34,7 +40,7 @@ export async function connectAllDb () {
  *  Create configuration object for the given tenant.
  **/
 
-function createConnectionConfig (tenant) {
+/* function createConnectionConfig (tenant) {
   return {
     client: process.env.DB_CLIENT,
     connection: {
@@ -46,6 +52,22 @@ function createConnectionConfig (tenant) {
     },
     pool: { min: 2, max: 20 }
   }
+} */
+function createConnectionConfig (tenant) {
+  return new Sequelize(tenant.db_name, tenant.db_username, tenant.db_password, {
+    host: process.env.DB_HOST,
+    dialect: 'mysql',
+    define: {
+      freezeTableName: true
+    },
+    operatorsAliases: 0,
+    pool: {
+      max: 5,
+      min: 0,
+      acquire: 30000,
+      idle: 1000000
+    }
+  })
 }
 
 /**
